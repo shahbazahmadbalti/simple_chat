@@ -1,11 +1,11 @@
 import os
 from flask import Flask, render_template, request, jsonify
-import openai
+from openai import OpenAI
 
 app = Flask(__name__)
 
-# Load API key from Railway secret
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize OpenAI client using the new SDK
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/")
 def home():
@@ -13,22 +13,22 @@ def home():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_message = request.json.get("message")
+    user_message = request.json.get("message", "")
 
     try:
-        response = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": user_message}
             ]
         )
-
-        reply = response["choices"][0]["message"]["content"]
+        reply = completion.choices[0].message.content
         return jsonify({"reply": reply})
 
     except Exception as e:
         return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
