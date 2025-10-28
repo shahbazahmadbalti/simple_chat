@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import openai
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -8,8 +8,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Get OpenAI API key from environment variable
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Initialize OpenAI client with API key from environment variable
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 @app.route('/')
 def index():
@@ -24,11 +24,11 @@ def chat():
             return jsonify({'error': 'No message provided'}), 400
         
         # Check if API key is configured
-        if not openai.api_key:
+        if not os.getenv('OPENAI_API_KEY'):
             return jsonify({'error': 'OpenAI API key not configured'}), 500
         
-        # Call OpenAI API
-        response = openai.ChatCompletion.create(
+        # Call OpenAI API using the new client format
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -43,7 +43,14 @@ def chat():
         return jsonify({'reply': bot_reply})
     
     except Exception as e:
+        print(f"Error: {str(e)}")  # This will show in Railway logs
         return jsonify({'error': str(e)}), 500
 
+# Health check endpoint for Railway
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy'})
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
