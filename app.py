@@ -4,7 +4,7 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Initialize OpenAI client using the new SDK
+# Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/")
@@ -16,14 +16,15 @@ def chat():
     user_message = request.json.get("message", "")
 
     try:
-        completion = client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply = completion.choices[0].message.content
+
+        reply = response.choices[0].message.content
         return jsonify({"reply": reply})
 
     except Exception as e:
