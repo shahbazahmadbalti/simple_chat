@@ -1,72 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat Assistant</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Simple Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: 50px;
+        }
+        .bot-message {
+            background: #f1f1f1;
+            margin-right: 50px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>AI Chat Assistant</h1>
-        <div id="status-message" class="status-message"></div>
-        <div class="chat-container">
-            <div id="chat-messages" class="chat-messages">
-                <div class="message bot-message">
-                    Hello! I'm your AI assistant. How can I help you today?
-                </div>
-            </div>
-            <div class="input-container">
-                <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off">
-                <button id="send-btn">Send</button>
+    <h1>Simple Chat App</h1>
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message bot-message">
+                Hello! How can I help you today?
             </div>
         </div>
-        <div class="debug-links">
-            <a href="/health" target="_blank">Health Check</a> | 
-            <a href="/test-api" target="_blank">Test API</a> | 
-            <a href="/debug" target="_blank">Debug Info</a>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off">
+            <button onclick="sendMessage()" id="sendBtn">Send</button>
         </div>
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-        const statusMessage = document.getElementById('status-message');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const messages = document.getElementById('messages');
 
-        // Check server health on load
-        async function checkHealth() {
-            try {
-                const response = await fetch('/health');
-                const data = await response.json();
-                
-                if (data.openai_client_initialized) {
-                    showStatus('API Connected ✓', 'success');
-                } else {
-                    showStatus('API Not Configured - Check Railway Environment Variables', 'error');
-                }
-            } catch (error) {
-                showStatus('Cannot connect to server', 'error');
-            }
-        }
-
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message ${type}`;
-        }
-
-        function addMessage(message, isUser = false) {
+        function addMessage(text, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
-            messageDiv.textContent = message;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            messageDiv.textContent = text;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
         }
 
         async function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
 
+            // Add user message
             addMessage(message, true);
             userInput.value = '';
             sendBtn.disabled = true;
@@ -85,23 +113,18 @@
                 if (response.ok) {
                     addMessage(data.reply);
                 } else {
-                    addMessage(`Error: ${data.error}`);
-                    if (data.debug_info) {
-                        addMessage(`Tip: ${data.debug_info}`);
-                    }
+                    addMessage('Error: ' + data.error);
                 }
             } catch (error) {
-                addMessage('Error: Failed to connect to server');
-            } finally {
-                sendBtn.disabled = false;
-                userInput.focus();
+                addMessage('Error: Failed to send message');
             }
+
+            sendBtn.disabled = false;
+            userInput.focus();
         }
 
-        // Initialize
-        checkHealth();
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
+        // Send message on Enter key
+        userInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
