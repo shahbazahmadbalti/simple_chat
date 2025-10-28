@@ -9,6 +9,7 @@
 <body>
     <div class="container">
         <h1>AI Chat Assistant</h1>
+        <div id="status-message" class="status-message"></div>
         <div class="chat-container">
             <div id="chat-messages" class="chat-messages">
                 <div class="message bot-message">
@@ -20,12 +21,39 @@
                 <button id="send-btn">Send</button>
             </div>
         </div>
+        <div class="debug-links">
+            <a href="/health" target="_blank">Health Check</a> | 
+            <a href="/test-api" target="_blank">Test API</a> | 
+            <a href="/debug" target="_blank">Debug Info</a>
+        </div>
     </div>
 
     <script>
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
+        const statusMessage = document.getElementById('status-message');
+
+        // Check server health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                if (data.openai_client_initialized) {
+                    showStatus('API Connected ✓', 'success');
+                } else {
+                    showStatus('API Not Configured - Check Railway Environment Variables', 'error');
+                }
+            } catch (error) {
+                showStatus('Cannot connect to server', 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+        }
 
         function addMessage(message, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -39,7 +67,6 @@
             const message = userInput.value.trim();
             if (!message) return;
 
-            // Add user message to chat
             addMessage(message, true);
             userInput.value = '';
             sendBtn.disabled = true;
@@ -58,16 +85,21 @@
                 if (response.ok) {
                     addMessage(data.reply);
                 } else {
-                    addMessage('Error: ' + data.error);
+                    addMessage(`Error: ${data.error}`);
+                    if (data.debug_info) {
+                        addMessage(`Tip: ${data.debug_info}`);
+                    }
                 }
             } catch (error) {
-                addMessage('Error: Failed to send message');
+                addMessage('Error: Failed to connect to server');
             } finally {
                 sendBtn.disabled = false;
                 userInput.focus();
             }
         }
 
+        // Initialize
+        checkHealth();
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
